@@ -1,2 +1,2 @@
 # BuggersChat
-An ugly chatting software. Using **Python**.
+**BuggersChat** is a chatting command-line tool that is written in Python.
