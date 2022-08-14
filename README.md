@@ -1,2 +1,2 @@
-# buggerschat
-An ugly chatting software.
+# BuggersChat
+An ugly chatting software. Using **Python**.
