@@ -17,6 +17,14 @@ strings = {
         "str_normal": "All works fine. ",
         "str_abandoned": "Hello! Your address has been abandoned from the server side. Please contact with Zhiming Cao for solutions. ",
     },
+    "ja-JP": {
+        "str_server_prefix": "サーバーサイド：",
+        "str_user_greetings": "こんにちは、USER１！お客様は",
+        "str_user2_greetings": "こんにちは、USER２！お客様は",
+        "str_user_greetings_after": "を一つ接続しました。", # For some languages, there may be something after this.
+        "str_normal": "全て正常です。",
+        "str_abandoned": "すみません！このアドレスはサーバーサイドから禁制しました。曹智銘さん（そう・ちめい）を連絡して解き方を求める。",
+    },
 }
 
 def get_str(key):

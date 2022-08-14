@@ -17,6 +17,14 @@ strings = {
         "str_hint_send": "Now, if you want to send something, just input `send`, and a space, and then the content you want to send.",
         "str_thanks_for_using": "Thanks for using BuggersChat. This software (C) Copyright 2022 Zhiming Cao，https://czhiming.cn/",
     },
+    "ja-JP": {
+        "str_intro": "バッガーのチャット\nもしかしたら、一番プログラマー的な軽量チャットプログラムであるかもしれません\n\n",
+        "str_initializing": "このプログラムは初期化しています。\n\nそれだけ、出力フォーマットが知ること必要です： \n白いテキストはクライエントの出力だ。ブルーなテキストはサーバーのメッセージです。 緑色なテキストは相手のメッセージです。赤いテキストは問題出力です。\n\n",
+        "str_input_name": "では、ニックネームと入力してください：",
+        "str_recorded_user": "ユーザーを記録している：",
+        "str_hint_send": "もし、何が送信すること欲しいならば、「send」とスペースが一つと送信のメッセージと入力してください。",
+        "str_thanks_for_using": "BuggersChatを利用してありがどうございました。このプログラムは：(C) Copyright 2022 Zhiming Cao，https://czhiming.cn/",
+    },
 }
 
 def get_str(key):
