@@ -1,29 +1,34 @@
 import socket
 import time
 import os
+from config import SERVER_IP
+from ..server.l10n import get_str
 sk=socket.socket(type=socket.SOCK_DGRAM)
-server = ("82.156.235.117",1320)
-print("BuggersChat软件\n可能是最适合程序员口味的轻量级聊天软件\n\n")
 
-print("我们正在初始化。\n\n这期间，请你了解一些本软件的格式：\n白色字均是从本客户端输出的；蓝色字是从服务端发来的；绿色字是对方发来的；红色字是警告信息。\n\n")
-name = input("现在，请你输入你希望使用的显示名称：")
+# Connect to the server
+server = (SERVER_IP, 1320)
+print(get_str("str_intro"))
+
+print(get_str("str_initializing"))
+name = input(get_str("str_input_name"))
 name_e = name.encode("utf-8")
-usr_to_write = "\n\n记录用户："+name+"\n\n"
+usr_to_write = "\n\n{0}".format(get_str("str_recorded_user"))+name+"\n\n"
 
 sk.sendto(name_e,server)
 time.sleep(0.1)
 msg = sk.recv(1024)
 msg = msg.decode("utf-8")
-print("\n\n接下来，如果你希望发送内容，请输入send，空格，然后输入要发送的内容。\n\n")
+print("\n\n{0}\n\n".format(get_str("str_hint_send")))
 print(msg)
-while 1:
+
+while True:
+    # Accept user commands and response.
     u_command = input(">>>")
     comm,para=u_command.split(" ",1)
     if comm == "send":
         r_send = name+"|"+para
         r_send = r_send.encode("utf-8")
         sk.sendto(r_send,server)
-
     elif comm == "name":
         name = para
     elif comm == "req_ctrl":
@@ -46,6 +51,6 @@ while 1:
         print(msg)
 
 time.sleep(1)
-print("\n\n\n\n感谢你使用BuggersChat软件，本软件(C) Copyright 2022 曹智铭，https://czhiming.cn/\n\n")
+print("\n\n\n\n{0}\n\n".format(get_str("str_thanks_for_using")))
 time.sleep(3)
 exit(0)
