@@ -18,7 +18,7 @@ while True:
     break
 while True:
     msg, addr2 = sk.recvfrom(1024)
-    encoded = "\033[34m{0}{1}你已经成功连接到BuggerChat-server{2}\n\n{3}\033[0m".format(get_str("str_server_prefix"), get_str("str_user2_greetings"), get_str("str_user_greetings_after"), get_str("str_normal")).encode("utf-8")
+    encoded = "\033[34m{0}{1}BuggerChat-server{2}\n\n{3}\033[0m".format(get_str("str_server_prefix"), get_str("str_user2_greetings"), get_str("str_user_greetings_after"), get_str("str_normal")).encode("utf-8")
     sk.sendto(encoded, addr2)
     bob_addr = addr2
     print("bob\n\n")
