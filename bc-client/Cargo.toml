@@ -9,3 +9,4 @@ edition = "2021"
 crossterm = "0.25.0"
 json = "0.12.4"
 bc-protocal-lib = { path = "../bc-protocal-lib" }
+crossbeam-channel = "0.5.6"
