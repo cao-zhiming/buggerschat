@@ -1,3 +1,5 @@
+//! TODO: Optimize it by using `tokio`.
+
 use std::{net::{TcpListener, TcpStream}, io::Write, thread, time::Duration};
 use crossbeam_channel::unbounded as channel;
 use crossbeam_channel::Sender;
@@ -43,15 +45,20 @@ impl BuggersChatServer {
             let mut msg_txs = Vec::<Sender<String>>::new();
             loop {
                 if let Ok(data) = rx.try_recv() {
+                    let mut index_to_delete = 0;
+                    let mut index_counter = 0;
                     for i in &msg_txs {
                         infof!("data = {data}");
                         match i.send(data.clone()) {
                             Ok(_) => {}
                             Err(err) => {
                                 warnf!("Fails to send message: {err}");
+                                index_to_delete = index_counter;
                             }
                         }
+                        index_counter += 1;
                     }
+                    msg_txs.remove(index_to_delete);
                 }
                 if let Ok(tx) = rrx.try_recv() {
                     infof!("Get a new channel sender: {tx:?}");
@@ -62,14 +69,16 @@ impl BuggersChatServer {
 
         let mut connection_counter = 0;
 
+        // Listen for each stream.
         for stream in tcp_listener.incoming() {
             if let Ok(mut stream) = stream {
+                // Try to connect with current stream.
                 infof!("Connected to a stream: {:?}", stream);
                 if connection_counter >= max_connection {
                     infof!("But the connection limit has been reached... Disconnecting. ");
                     if let Ok(_) = bc_protocal_lib::BuggersChatProtocal::write_string(&mut stream, &object! {
                         "type": "server_message",
-                        "localizable_id": "str_user_login",
+                        "localizable_id": "str_limit_reached",
                     }.to_string()) {}
                     if let Ok(_) = bc_protocal_lib::BuggersChatProtocal::disconnect(&mut stream) {}
                 }
@@ -93,6 +102,7 @@ impl BuggersChatServer {
                 // Send the ntx of new thread to the notification center.
                 if let Ok(_) = ttx.send(ntx) {}
                 infof!("Connection is successfully made.");
+                connection_counter += 1;
             }
         }
     }
@@ -100,8 +110,7 @@ impl BuggersChatServer {
     // Connect to a stream.
     fn handle_connection(&mut self, mut stream: TcpStream, chan: Sender<String>, notify: Receiver<String>) {
 
-        // let mut user_name = String::from("<undefined>");
-        let mut user_name;
+        let mut user_name = String::from("<undefined>");
 
         // Read the content
         loop {
@@ -163,6 +172,7 @@ impl BuggersChatServer {
                     match chan.send(object! {
                         "type": "user_message",
                         "content": message_content,
+                        "from": user_name.clone(),
                     }.dump()) {
                         Ok(_) => {}
                         Err(err) => {
