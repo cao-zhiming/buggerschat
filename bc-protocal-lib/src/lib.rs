@@ -13,11 +13,14 @@
 use std::net::TcpStream;
 use std::io::Read;
 use std::io::Write;
+use std::sync::Arc;
+use std::sync::Mutex;
 
 /// Contains methods to operate Buggers Chat Protocals
 pub struct BuggersChatProtocal;
 
 /// The message's type.
+#[derive(Debug)]
 pub enum BuggersChatProtocalMessageType {
     String(String),
     Disconnect,
@@ -68,8 +71,22 @@ impl BuggersChatProtocal {
                 Ok(BuggersChatProtocalMessageType::Idle)
             }
         } else {
-            Ok(BuggersChatProtocalMessageType::Idle)
+            Ok(BuggersChatProtocalMessageType::Disconnect)
         }
+    }
+
+
+    /// Read asynchronoly.
+    pub fn read_message_async<F: FnOnce(std::io::Result<BuggersChatProtocalMessageType>) -> () + Send + 'static>(stream: Arc<Mutex<TcpStream>>, on_complete: F) {
+        std::thread::spawn(move || {
+            loop {
+                if let Ok(mut stream) = stream.try_lock() {
+                    let msg = Self::read_message(&mut stream);
+                    on_complete(msg);
+                    break;
+                }
+            }
+        });
     }
 
     /// Write the string to the `stream`.

@@ -1,6 +1,6 @@
 //! TODO: Optimize it by using `tokio`.
 
-use std::{net::{TcpListener, TcpStream}, io::Write, thread, time::Duration};
+use std::{net::{TcpListener, TcpStream}, io::Write, thread};
 use crossbeam_channel::unbounded as channel;
 use crossbeam_channel::Sender;
 use crossbeam_channel::Receiver;
@@ -45,20 +45,24 @@ impl BuggersChatServer {
             let mut msg_txs = Vec::<Sender<String>>::new();
             loop {
                 if let Ok(data) = rx.try_recv() {
-                    let mut index_to_delete = 0;
+                    let mut index_to_delete = -1;
                     let mut index_counter = 0;
                     for i in &msg_txs {
                         infof!("data = {data}");
                         match i.send(data.clone()) {
-                            Ok(_) => {}
+                            Ok(_) => {
+                                infof!("Message sent.");
+                            }
                             Err(err) => {
                                 warnf!("Fails to send message: {err}");
-                                index_to_delete = index_counter;
+                                index_to_delete = index_counter as i32;
                             }
                         }
                         index_counter += 1;
                     }
-                    msg_txs.remove(index_to_delete);
+                    if index_to_delete != -1 {
+                        msg_txs.remove(index_to_delete as usize);
+                    }
                 }
                 if let Ok(tx) = rrx.try_recv() {
                     infof!("Get a new channel sender: {tx:?}");
@@ -110,13 +114,15 @@ impl BuggersChatServer {
     // Connect to a stream.
     fn handle_connection(&mut self, mut stream: TcpStream, chan: Sender<String>, notify: Receiver<String>) {
 
+        infof!("Connection here. ");
+
         let mut user_name = String::from("<undefined>");
 
         // Read the content
         loop {
 
             // Check the notification.
-            if let Ok(data) = notify.recv_timeout(Duration::from_millis(5)) {
+            if let Ok(data) = notify.try_recv() {
                 match BuggersChatProtocal::write_string(&mut stream, &data) {
                     Ok(_) => {
                         infof!("Successfully receive a notification and send data. ");
@@ -128,13 +134,18 @@ impl BuggersChatServer {
                         return;
                     }
                 }
+            } else {
+                if let Ok(_) = bc_protocal_lib::BuggersChatProtocal::make_idle(&mut stream) {}
             }
+
+            if let Ok(_) = bc_protocal_lib::BuggersChatProtocal::make_idle(&mut stream) {}
 
             let msg = if let Ok(some) = bc_protocal_lib::BuggersChatProtocal::read_message(&mut stream) {
                 some
             } else {
                 BuggersChatProtocalMessageType::Disconnect
             };
+            
             if let BuggersChatProtocalMessageType::String(content) = msg {
                 infof!("Got request content: {:?}", content);
                 let json_obj = match json::parse(&content) {
@@ -163,6 +174,7 @@ impl BuggersChatServer {
                             warnf!("Cannot send the message: {err} ");
                         }
                     }
+                    infof!("{} logging done. ", user_name);
                     continue;
                 }
                 // Send a message.
@@ -185,7 +197,6 @@ impl BuggersChatServer {
                 infof!("Disconnected. ");
                 break;
             } else {
-                // Idle
                 if let Ok(_) = bc_protocal_lib::BuggersChatProtocal::make_idle(&mut stream) {}
             }
         }
