@@ -15,7 +15,7 @@ macro_rules! infof {
     ($($args: tt)*) => {
         {
             use crossterm::style::Stylize;
-            eprintln!("{}", format!("[INFO] {}", format!($($args)*)).green().bold());
+            eprintln!("{}", format!("[INFO {}:{}] {}", file!(), line!(), format!($($args)*)).green().bold());
         }
     };
 }
@@ -25,7 +25,7 @@ macro_rules! warnf {
     ($($args: tt)*) => {
         {
             use crossterm::style::Stylize;
-            eprintln!("{}", format!("[WARNING] {}", format!($($args)*)).yellow().bold());
+            eprintln!("{}", format!("[WARNING {}:{}] {}", file!(), line!(), format!($($args)*)).yellow().bold());
         }
     };
 }

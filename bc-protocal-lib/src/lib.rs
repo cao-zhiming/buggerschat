@@ -10,6 +10,7 @@
 //! 0x00 0x00
 //! ```
 
+use std::error::Error;
 use std::net::TcpStream;
 use std::io::Read;
 use std::io::Write;
@@ -36,42 +37,39 @@ impl BuggersChatProtocal {
         let mut header = [0_u8; 3];
 
         // If we read the header succesfully,
-        if let Ok(_) = stream.read(&mut header) {
+        stream.read(&mut header)?;
 
-            // Check the headers.
-            if header[0] == 0x7f && header[1] == 0x2a {
-                match header[2] {
-                    0x00 => {
-                        // Read each charater and get the string.
-                        let mut buffer = [0_u8; 2];
-                        let mut result = Vec::<u8>::new();
-                        loop {
-                            stream.read(&mut buffer)?;
-                            match buffer[0] {
-                                0x27 => {
-                                    result.push(buffer[1]);
-                                }
-                                _ => {
-                                    break;
-                                }
+        // Check the headers.
+        if header[0] == 0x7f && header[1] == 0x2a {
+            match header[2] {
+                0x00 => {
+                    // Read each charater and get the string.
+                    let mut buffer = [0_u8; 2];
+                    let mut result = Vec::<u8>::new();
+                    loop {
+                        stream.read(&mut buffer)?;
+                        match buffer[0] {
+                            0x27 => {
+                                result.push(buffer[1]);
+                            }
+                            _ => {
+                                break;
                             }
                         }
-                        Ok(BuggersChatProtocalMessageType::String(String::from_utf8_lossy(&result).to_string()))
                     }
-                    0x01 => {
-                        // Disconnect signal.
-                        Ok(BuggersChatProtocalMessageType::Disconnect)
-                    }
-                    _ => {
-                        // Otherwise, make idle.
-                        Ok(BuggersChatProtocalMessageType::Idle)
-                    }
+                    Ok(BuggersChatProtocalMessageType::String(String::from_utf8_lossy(&result).to_string()))
                 }
-            } else {
-                Ok(BuggersChatProtocalMessageType::Idle)
+                0x01 => {
+                    // Disconnect signal.
+                    Ok(BuggersChatProtocalMessageType::Disconnect)
+                }
+                _ => {
+                    // Otherwise, make idle.
+                    Ok(BuggersChatProtocalMessageType::Idle)
+                }
             }
         } else {
-            Ok(BuggersChatProtocalMessageType::Disconnect)
+            Ok(BuggersChatProtocalMessageType::Idle)
         }
     }
 

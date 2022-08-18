@@ -116,6 +116,10 @@ impl BuggersChatServer {
 
         infof!("Connection here. ");
 
+        if let Err(err) = stream.set_nonblocking(true) {
+            warnf!("Failed to set nonblocking: {err}");
+        }
+
         let mut user_name = String::from("<undefined>");
 
         // Read the content
@@ -143,7 +147,7 @@ impl BuggersChatServer {
             let msg = if let Ok(some) = bc_protocal_lib::BuggersChatProtocal::read_message(&mut stream) {
                 some
             } else {
-                BuggersChatProtocalMessageType::Disconnect
+                BuggersChatProtocalMessageType::Idle
             };
             
             if let BuggersChatProtocalMessageType::String(content) = msg {
@@ -194,7 +198,7 @@ impl BuggersChatServer {
                     continue;
                 }
             } else if let BuggersChatProtocalMessageType::Disconnect = msg {
-                infof!("Disconnected. ");
+                infof!("Disconnected.");
                 break;
             } else {
                 if let Ok(_) = bc_protocal_lib::BuggersChatProtocal::make_idle(&mut stream) {}
