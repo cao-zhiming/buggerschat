@@ -4,9 +4,9 @@ use std::{net::TcpStream, process::exit, io::{Write, stdout, stdin, ErrorKind}, 
 
 use bc_protocal_lib::BuggersChatProtocalMessageType;
 use crossbeam_channel::{unbounded, TryRecvError};
-use crossterm::{style::Stylize, execute, terminal::{Clear, ClearType}, cursor, queue};
+use crossterm::{style::Stylize, terminal::{Clear, ClearType}, cursor, queue};
 use json::object;
-use reedline::{Reedline, Prompt, DefaultPrompt, EditMode, PromptEditMode, PromptViMode};
+use reedline::{Reedline, Prompt};
 
 use crate::l10n;
 
@@ -23,7 +23,7 @@ impl Prompt for BuggersChatClientPrompt {
         Cow::Owned(String::from(""))
     }
 
-    fn render_prompt_indicator(&self, prompt_mode: reedline::PromptEditMode) -> std::borrow::Cow<str> {
+    fn render_prompt_indicator(&self, _prompt_mode: reedline::PromptEditMode) -> std::borrow::Cow<str> {
         Cow::Owned(String::from(""))
     }
 
@@ -33,7 +33,7 @@ impl Prompt for BuggersChatClientPrompt {
 
     fn render_prompt_history_search_indicator(
         &self,
-        history_search: reedline::PromptHistorySearch,
+        _history_search: reedline::PromptHistorySearch,
     ) -> std::borrow::Cow<str> {
         Cow::Owned(String::from("=) "))
     }

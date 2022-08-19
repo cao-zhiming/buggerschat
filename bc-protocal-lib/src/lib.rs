@@ -10,7 +10,6 @@
 //! 0x00 0x00
 //! ```
 
-use std::error::Error;
 use std::net::TcpStream;
 use std::io::Read;
 use std::io::Write;
