@@ -1,12 +1,43 @@
-use std::{net::TcpStream, process::exit, io::{Write, stdout, stdin, ErrorKind}, thread};
+//! TODO: Make it better for user by using the crate reedline.
+
+use std::{net::TcpStream, process::exit, io::{Write, stdout, stdin, ErrorKind}, thread, borrow::Cow};
 
 use bc_protocal_lib::BuggersChatProtocalMessageType;
 use crossbeam_channel::{unbounded, TryRecvError};
-use crossterm::style::Stylize;
+use crossterm::{style::Stylize, execute, terminal::{Clear, ClearType}, cursor, queue};
 use json::object;
+use reedline::{Reedline, Prompt, DefaultPrompt, EditMode, PromptEditMode, PromptViMode};
 
 use crate::l10n;
 
+
+#[derive(Clone)]
+struct BuggersChatClientPrompt;
+
+impl Prompt for BuggersChatClientPrompt {
+    fn render_prompt_left(&self) -> std::borrow::Cow<str> {
+        Cow::Owned(String::from("> "))
+    }
+
+    fn render_prompt_right(&self) -> std::borrow::Cow<str> {
+        Cow::Owned(String::from(""))
+    }
+
+    fn render_prompt_indicator(&self, prompt_mode: reedline::PromptEditMode) -> std::borrow::Cow<str> {
+        Cow::Owned(String::from(""))
+    }
+
+    fn render_prompt_multiline_indicator(&self) -> std::borrow::Cow<str> {
+        Cow::Owned(String::from("... "))
+    }
+
+    fn render_prompt_history_search_indicator(
+        &self,
+        history_search: reedline::PromptHistorySearch,
+    ) -> std::borrow::Cow<str> {
+        Cow::Owned(String::from("=) "))
+    }
+}
 
 pub struct BuggersChatClient {
     addr: String,
@@ -59,6 +90,7 @@ impl BuggersChatClient {
                     if let BuggersChatProtocalMessageType::String(s) = msg {
                         if let Ok(json_obj) = json::parse(&s) {
                             if json_obj.has_key("type") {
+                                queue!(stdout(), Clear(ClearType::CurrentLine),cursor::MoveToColumn(0)).ok();
                                 match json_obj["type"].as_str().unwrap_or("") {
                                     "server_message" => {
                                         let content = l10n::get_string_by_language_and_key(crate::LANG, json_obj["localizable_id"].as_str().unwrap_or("str_unknown_msg_from_server")).replace("%USERNAME%", username.trim().clone());
@@ -96,12 +128,25 @@ impl BuggersChatClient {
             }
         });
 
-        println!("Write: ");
+        println!("{}", format!("[HINT] Type %quit% to quit.").bold().green());
+        let mut line_editor = Reedline::create();
+        let prompt = BuggersChatClientPrompt;
         loop {
-            let mut buffer = String::new();
-            stdin().read_line(&mut buffer).unwrap();
-            if let Err(err) = tx.send(BuggersChatProtocalMessageType::String(String::from(buffer.trim_end()))) {
-                println!("{err}")
+            // stdin().read_line(&mut buffer).unwrap();
+            let sig = line_editor.read_line(&prompt).unwrap();
+            match sig {
+                reedline::Signal::Success(buffer) => {
+                    if buffer == "%quit%" {
+                        break;
+                    }
+                    if let Err(err) = tx.send(BuggersChatProtocalMessageType::String(String::from(buffer.trim_end()))) {
+                        println!("{err}")
+                    }
+                },
+                reedline::Signal::CtrlC => {
+                    break;
+                }
+                reedline::Signal::CtrlD => {}
             }
         }
 

@@ -2,6 +2,8 @@
 
 use std::io::{Write, stdin, stdout};
 
+use crossterm::style::Stylize;
+
 
 mod chatclient;
 mod l10n;
@@ -20,5 +22,6 @@ fn main() {
     let mut client = chatclient::BuggersChatClient::new(addr.trim());
     client.start();
 
+    println!("{}", format!("{}", l10n::get_string_by_language_and_key(LANG, "str_disconnected").bold().green()));
 
 }
