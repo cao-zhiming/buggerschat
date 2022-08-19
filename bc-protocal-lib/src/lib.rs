@@ -21,7 +21,7 @@ use std::sync::Mutex;
 pub struct BuggersChatProtocal;
 
 /// The message's type.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum BuggersChatProtocalMessageType {
     String(String),
     Disconnect,

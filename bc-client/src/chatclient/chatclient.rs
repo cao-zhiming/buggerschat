@@ -1,6 +1,7 @@
-use std::{net::TcpStream, process::exit, io::{Write, stdout, stdin}, sync::{mpsc::channel, Arc, Mutex}};
+use std::{net::TcpStream, process::exit, io::{Write, stdout, stdin, ErrorKind}, thread};
 
 use bc_protocal_lib::BuggersChatProtocalMessageType;
+use crossbeam_channel::{unbounded, TryRecvError};
 use crossterm::style::Stylize;
 use json::object;
 
@@ -29,6 +30,7 @@ impl BuggersChatClient {
                 exit(-1);
             }
         };
+        stream.set_nonblocking(true).unwrap();
 
         // Ask for the username.
         let mut username = String::new();
@@ -47,99 +49,59 @@ impl BuggersChatClient {
                 exit(-1);
             }
         }
-        if let Ok(_) = stream.flush() {}
 
-        let (tx, rx) = channel::<String>();
-        let (msg_sender, msg_receiver) = channel::<BuggersChatProtocalMessageType>();
-        // let arced_stream = Arc::new(Mutex::new(stream));
-        let mut stream_for_request_thread = stream.try_clone().unwrap();
-        let mut stream_for_guard_thread = stream.try_clone().unwrap();
-        // The request thread.
-        std::thread::spawn(move || {
-            loop {
-                let mut stream = stream_for_request_thread.try_clone().unwrap();
-                if let Ok(msg) = bc_protocal_lib::BuggersChatProtocal::read_message(&mut stream) {
-                    if let Err(err) = msg_sender.send(msg) {
-                        println!("{err}");
-                    }
-                }
-            }
-        });
+        // TODO: Rewrite here
+        let (tx, rx) = unbounded::<BuggersChatProtocalMessageType>();
 
-        // The guard thread.
-        std::thread::spawn(move || {
-            loop {
-                let mut stream = stream_for_guard_thread.try_clone().unwrap();
-                // Get a command.
-                if let Ok(msg) = msg_receiver.try_recv() {
-                    match msg {
-                        BuggersChatProtocalMessageType::String(s) => {
-
-                            // Read the object.
-                            let obj = match json::parse(&s) {
-                                Ok(obj) => obj,
-                                Err(err) => {
-                                    eprintln!("{}", format!("JSON Parse error: {}", err).bold().red());
-                                    eprintln!("{}", format!("{}",l10n::get_string_by_language_and_key(crate::LANG, "str_tech_detail")).bold().cyan());
-                                    exit(-1);
-                                }
-                            };
-
-                            // Check the value.
-                            match obj["type"].to_string().as_str() {
-                                "server_message" => {
-                                    println!("\n{}", format!(
-                                        "{}",
-                                        l10n::get_string_by_language_and_key(crate::LANG, obj["localizable_id"].to_string().as_str()).replace("%USERNAME%", username.trim())
-                                    ).red().bold());
-                                }
-                                "user_message" => {
-                                    println!("\n{}", format!(
-                                        "[{}] {}",
-                                        obj["from"].to_string(),
-                                        obj["content"].to_string()
-                                    ).green().bold());
-                                }
-                                _ => {}
-                            }
-                            if let Ok(_) = bc_protocal_lib::BuggersChatProtocal::make_idle(&mut stream) {}
-                        }
-                        BuggersChatProtocalMessageType::Idle => {
-                            // if let Ok(_) = bc_protocal_lib::BuggersChatProtocal::make_idle(&mut stream) {}
-
-                            // Trying to receive a message when idle.
-                            match rx.try_recv() {
-                                Ok(some) => {
-                                    if let Err(err) = bc_protocal_lib::BuggersChatProtocal::write_string(&mut stream, &object! {
-                                        "type": "send",
-                                        "content": some.clone(),
-                                    }.dump()) {
-                                        eprintln!("{}", format!("{}{err}", l10n::get_string_by_language_and_key(crate::LANG, "str_failed_to_send")).bold().red());
+        thread::spawn(move || loop {
+            match bc_protocal_lib::BuggersChatProtocal::read_message(&mut stream) {
+                Ok(msg) => {
+                    if let BuggersChatProtocalMessageType::String(s) = msg {
+                        if let Ok(json_obj) = json::parse(&s) {
+                            if json_obj.has_key("type") {
+                                match json_obj["type"].as_str().unwrap_or("") {
+                                    "server_message" => {
+                                        let content = l10n::get_string_by_language_and_key(crate::LANG, json_obj["localizable_id"].as_str().unwrap_or("str_unknown_msg_from_server")).replace("%USERNAME%", username.trim().clone());
+                                        println!(
+                                            "{}",
+                                            format!("[SERVER] {content}").cyan().bold()
+                                        );
                                     }
-                                    stream.flush().unwrap();
-                                }
-                                Err(_) => {
-                                    // Do something here.
-                                    if let Ok(_) = bc_protocal_lib::BuggersChatProtocal::make_idle(&mut stream) {}
+                                    "user_message" => {
+                                        println!("{}", format!("[{}] {}", json_obj["from"].to_string(), json_obj["content"].to_string()));
+                                    }
+                                    _ => {}
                                 }
                             }
                         }
-                        BuggersChatProtocalMessageType::Disconnect => {
-                            eprintln!("{}", format!("{}",l10n::get_string_by_language_and_key(crate::LANG, "str_disconnected")).bold().cyan());
-                            exit(0);
-                        }
                     }
                 }
+                Err(ref err) if err.kind() == ErrorKind::WouldBlock => (),
+                Err(_) => {
+                    break;
+                }
+            }
+            match rx.try_recv() {
+                Ok(msg) => {
+                    if let BuggersChatProtocalMessageType::String(s) = msg {
+                        if let Ok(_) = bc_protocal_lib::BuggersChatProtocal::write_string(&mut stream, &object! {
+                            "type": "send",
+                            "content": s,
+                            "username": username.clone().trim(),
+                        }.dump()) {}
+                    }
+                }
+                Err(TryRecvError::Empty) => (),
+                Err(TryRecvError::Disconnected) => break
             }
         });
 
-        // Main loop.
+        println!("Write: ");
         loop {
             let mut buffer = String::new();
             stdin().read_line(&mut buffer).unwrap();
-            if let Err(err) = tx.send(buffer) {
-                eprintln!("{}", format!("{}({err})", l10n::get_string_by_language_and_key(crate::LANG, "str_disconnected")).bold().red());
-                break;
+            if let Err(err) = tx.send(BuggersChatProtocalMessageType::String(String::from(buffer.trim_end()))) {
+                println!("{err}")
             }
         }
 

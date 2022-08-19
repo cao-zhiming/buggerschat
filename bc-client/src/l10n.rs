@@ -28,6 +28,7 @@ pub fn get_string_by_language_and_key(language: &str, key: &str) -> String {
             "str_disconnected": "Connection lost. Thanks for using this software! ",
             "str_tech_detail": "",
             "str_failed_to_send": "Failed to send: ",
+            "str_unknown_msg_from_server": "Unknown message from server. ",
         },
     };
     if data.has_key(language) {
