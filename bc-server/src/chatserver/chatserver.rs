@@ -83,6 +83,7 @@ impl BuggersChatServer {
             }
 
             if let Ok(msg) = rx.try_recv() {
+                infof!("Recieved message: {:?}", msg.clone());
                 clients = clients.into_iter().filter_map(|mut client| {
                     match msg.clone() {
                         BuggersChatProtocalMessageType::String(msgt) => {
@@ -125,7 +126,7 @@ impl BuggersChatServer {
                             return Some(client);
                         }
                         BuggersChatProtocalMessageType::Disconnect => {
-                            return None;
+                            return Some(client);
                         }
                     }
                 }).collect::<Vec<_>>()

@@ -10,6 +10,7 @@
 //! 0x00 0x00
 //! ```
 
+use std::io::Error;
 use std::net::TcpStream;
 use std::io::Read;
 use std::io::Write;
@@ -68,7 +69,7 @@ impl BuggersChatProtocal {
                 }
             }
         } else {
-            Ok(BuggersChatProtocalMessageType::Idle)
+            Err(Error::new(std::io::ErrorKind::BrokenPipe, "Failed to recv"))
         }
     }
 
