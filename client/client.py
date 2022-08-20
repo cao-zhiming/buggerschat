@@ -1,12 +1,12 @@
 import socket
 import time
 import os
-from config import SERVER_IP
+import config
 from ..server.l10n import get_str
 sk=socket.socket(type=socket.SOCK_DGRAM)
 
 # Connect to the server
-server = (SERVER_IP, 1320)
+server = (ADDRESS)
 print(get_str("str_intro"))
 
 print(get_str("str_initializing"))
