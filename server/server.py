@@ -1,11 +1,11 @@
-from ftplib import error_temp
+import config
 from l10n import get_str
 import socket
 
 sk = socket.socket(type=socket.SOCK_DGRAM)
 
 # Change this to your IP.
-sk.bind(("0.0.0.0", 1320))
+sk.bind(ADDR)
 
 while True:
     msg, addr1 = sk.recvfrom(1024)
